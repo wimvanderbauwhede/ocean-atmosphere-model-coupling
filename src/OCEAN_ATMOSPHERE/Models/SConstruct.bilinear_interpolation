@@ -1,0 +1,26 @@
+import os
+FC=os.environ.get('FC')
+
+fsources = [
+'./bilinear_interpolation.f95',
+'./interpolation_test.f95',
+#'./numerical_recipes/nr.f95',
+'./numerical_recipes/nrtype.f95',
+'./numerical_recipes/nrutil.f95'
+#./numerical_recipes/polin2.f95',
+#./numerical_recipes/polint.f95'        
+]
+
+# For OpenMP
+#LDFLAGS= ['-fopenmp','-Wl,-stack_size,0x40000000']
+#FFLAGS  = ['-O2', '-m64', '-Wall', '-fconvert=big-endian','-fopenmp','-pthread']
+
+LDFLAGS= []
+FFLAGS_F95  = ['-Ofast', '-m64', '-Wall','-Wno-unused','-Wno-unused-dummy-argument','-ffree-form', '-ffree-line-length-none'] # THIS IS WRONG: '-fconvert=big-endian']
+
+# NOTE: F95PATH is essential for module support, FORTRANPATH does NOT work!
+envF95=Environment(F95=FC,LINK=FC,LINKFLAGS=LDFLAGS,F95FLAGS=FFLAGS_F95,F95PATH=['.','./recipes'])
+
+envF95.Program('interpolation_test',fsources,LIBS=[],LIBPATH=['.','./recipes'])
+
+
