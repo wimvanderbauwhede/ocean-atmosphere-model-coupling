@@ -1335,12 +1335,13 @@ MODULE nr
             REAL(DP), DIMENSION(2*size(uc,1)-1,2*size(uc,1)-1) :: interp
             END FUNCTION interp
       END INTERFACE
+      ! WV: renamed to irank from rank
       INTERFACE
-            FUNCTION rank(indx)
+            FUNCTION irank(indx)
             USE nrtype
             INTEGER(I4B), DIMENSION(:), INTENT(IN) :: indx
-            INTEGER(I4B), DIMENSION(size(indx)) :: rank
-            END FUNCTION rank
+            INTEGER(I4B), DIMENSION(size(indx)) :: irank
+            END FUNCTION irank
       END INTERFACE
       INTERFACE
             FUNCTION irbit1(iseed)
@@ -2152,11 +2153,12 @@ MODULE nr
             REAL(SP), INTENT(OUT) :: fa,fb,fc,fd
             END SUBROUTINE quadvl
       END INTERFACE
+      ! WV: renamed to iran from ran
       INTERFACE
-            FUNCTION ran(idum)
+            FUNCTION iran(idum)
             INTEGER(selected_int_kind(9)), INTENT(INOUT) :: idum
-            REAL :: ran
-            END FUNCTION ran
+            REAL :: iran
+            END FUNCTION iran
       END INTERFACE
       INTERFACE ran0
             SUBROUTINE ran0_s(harvest)
@@ -3202,8 +3204,8 @@ MODULE nr
             LOGICAL(LGT), INTENT(IN) :: polish
             END SUBROUTINE zroots
       END INTERFACE
-
-  ! This is to suppress the ranlib "has no symbols" message
-  integer, private :: private_dummy
+! WV: no need
+!  ! This is to suppress the ranlib "has no symbols" message
+!  integer, private :: private_dummy
 
 END MODULE nr

@@ -1,7 +1,10 @@
 . $GMCF_DIR/etc/gmcfrc
+cp ocean_atmosphere.tdc64 gmcf.tdc64
 build.pl -Y src/OCEAN_ATMOSPHERE/Task/GMCF_OCEAN_ATMOSPHERE.yml  -L 
 cd src/OCEAN_ATMOSPHERE/Models
-scons -f SConstruct.model1 
-scons -f SConstruct.model2 
+scons -f SConstruct.gmcfInterpolation
+scons -f SConstruct.ocean_model 
+scons -f SConstruct.atmosphere_model 
 cd ../../..
-scons models=model1,model2 -f SConstruct.OCEAN_ATMOSPHERE
+scons models=ocean,atmosphere -f SConstruct.OCEAN_ATMOSPHERE
+

@@ -1,4 +1,4 @@
-!#define GMCF_VERBOSE
+#define GMCF_VERBOSE
 module gmcfAPIocean
     use gmcfAPI
     use gmcfInterpolation
@@ -15,16 +15,20 @@ module gmcfAPIocean
     integer, parameter :: GMCF_TIME_STEP_OCEAN = 1 ! number of quanta
     integer, parameter :: GMCF_TIME_OFFSET_OCEAN = 0 ! number of quanta
 
-    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27
+    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27 ! Should this be here or in the model?
     integer, parameter :: ATMOSPHERE_DI=5,ATMOSPHERE_DJ=5,ATMOSPHERE_DK=1
+#if GMCF_INTERPOL_SPACE
     ! I'm not happy with these names. The correct approach would be to define OCEAN_OFFSET_FROM_ATMOSPHERE_X, OCEAN_OFFSET_FROM_ATMOSPHERE_Y
     ! Or actually better, use physical coordinates
     integer, parameter :: ATMOSPHERE_IMS=6,ATMOSPHERE_JMS=8,ATMOSPHERE_KMS=1
     integer, parameter :: ATMOSPHERE_IME=26,ATMOSPHERE_JME=28,ATMOSPHERE_KME=27
-
-    integer, parameter :: OCEAN_IP=100,OCEAN_JP=100,OCEAN_KP=26
+#endif
+!    integer, parameter :: OCEAN_IP=100,OCEAN_JP=100,OCEAN_KP=26
+    integer, parameter :: OCEAN_IP=48,OCEAN_JP=48,OCEAN_KP=27
+#if GMCF_INTERPOL_SPACE
     integer, parameter :: OCEAN_DI=1,OCEAN_DJ=1,OCEAN_DK=1 ! note that the latter is usually non-linear!
     integer, parameter :: OCEAN_IMS=0,OCEAN_JMS=0,OCEAN_KMS=0
+#endif
     type(gmcfPacket) :: packet
     real(4), dimension(1:4,0:ATMOSPHERE_IP-1,0:ATMOSPHERE_JP-1) :: wind_profile, wind_profile_prev, wind_profile_current
     real(4), dimension(0:ATMOSPHERE_IP-1,0:ATMOSPHERE_JP-1) :: temperature
@@ -37,7 +41,7 @@ contains
         integer(8), intent(In) :: tile
         integer, intent(In) :: m_id
 #ifdef GMCF_VERBOSE
-        print *, "OCEAN API gmcfInitOcean()"
+        print *, "OCEAN API gmcfInitOcean() BEFORE gmcfInitCoupler"
 #endif
         ocean_id=m_id
 !        t_ocean = 0
@@ -55,45 +59,53 @@ contains
 !        t_ocean = t_ocean + 1
 
         sim_time = n_ticks * GMCF_TIME_STEP_OCEAN + GMCF_TIME_OFFSET_OCEAN
-
-        call gmcfCheckSync(sim_time,current_sync_config, is_sync_point)
+#ifdef GMCF_VERBOSE
+        print *, "OCEAN API gmcfSyncOcean",sim_time
+#endif
+        call gmcfCheckSync(ocean_id,sim_time,current_sync_config, is_sync_point)
 
         if (is_sync_point) then
-        n_ticks_at_sync = n_ticks
-        if (gmcfStatus(GMCF_ATMOSPHERE_ID) /= FIN) then
+            n_ticks_at_sync = n_ticks
+            if (gmcfStatus(GMCF_ATMOSPHERE_ID) /= FIN) then
         ! Sync will synchronise simulation time steps but also handle any pending requests
         !$GMC sync(t)
 
 #ifdef GMCF_VERBOSE
-        print *, "OCEAN API BEFORE gmcfSync()"
+                print *, "OCEAN API BEFORE gmcfSync()",sim_time,sync_done
 #endif
-        sync_done=0
-        do while(sync_done == 0)
-            call gmcfSync(ocean_id,t_sync,sync_done)
+                    sync_done=0
+                    do while(sync_done == 0)
+                        call gmcfSync(ocean_id,sim_time,sync_done)
 #ifdef GMCF_VERBOSE
-            print *, "OCEAN API AFTER gmcfSync()"
-            print *, "OCEAN API", ocean_id," sync loop ",sim_time,"..."
+                        print *, "OCEAN API AFTER gmcfSync()"
+                        print *, "OCEAN API", ocean_id," sync loop ",sim_time,"..."
 #endif
-        end do
+                    end do
 #ifdef GMCF_VERBOSE
-        print *, "OCEAN API", ocean_id," syncing DONE for time step ",sim_time, ", ", n_ticks, " ticks"
+                print *, "OCEAN API", ocean_id," syncing DONE for time step ",sim_time, ", ", n_ticks, " ticks"
 #endif
-        end if ! t_sync
-        end if ! FIN
+            end if ! FIN
+        end if ! is_sync_point
     end subroutine gmcfSyncOcean
 
-    subroutine gmcfPreOcean
+    subroutine gmcfPreOcean(u,v,w, t_surface)
+        real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP), intent(InOut) :: u,v,w
+        real(kind=4), dimension(OCEAN_IP,OCEAN_JP), intent(In) :: t_surface
+
         if (is_sync_point) then
             ! So now we can do some work. Let's suppose ocean is the OCEAN, and it requests data from model2, ATMOSPHERE.
             ! First overwrite the *prev vars with the current vars
-
-             wind_profile_prev = wind_profile
-
+#if GMCF_INTERPOL_TIME
+        wind_profile_prev = wind_profile
+#endif
         if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
                 select case (current_sync_config) ! <code for the variable var_name, GMCF-style>
                     case (OCEAN_ATMOSPHERE_TEMPERATURE)
+                    print *, "OCEAN API: gmcfSampleTemperatureOcean(t_surface)", t_surface(1,1), temperature(0,0)
+                        call gmcfSampleTemperatureOcean(t_surface)
+                        print *, "OCEAN API: gmcfSend1DFloatArray(temperature)"
                         call gmcfSend1DFloatArray(ocean_id,temperature, shape(temperature), GMCF_TEMPERATURE, GMCF_ATMOSPHERE_ID,PRE,sim_time)
-                    case (ATMOSPHERE_OCEAN_WIND_PROFILE)
+!                    case (ATMOSPHERE_OCEAN_WIND_PROFILE)
                         call gmcfWaitFor(ocean_id,RESPDATA, GMCF_ATMOSPHERE_ID, 1)
 #ifdef GMCF_VERBOSE
                         print *, "OCEAN API: got 1 DRESP ..."
@@ -101,11 +113,15 @@ contains
                         ! and then we read them
                         call gmcfHasPackets(ocean_id,RESPDATA,has_packets)
                         do while (has_packets==1)
-                            call gmcfShiftPending(ocean_id,RESPDATA,packet,fifo_empty)
+                            call gmcfShiftPending(ocean_id,GMCF_ATMOSPHERE_ID,RESPDATA,packet,fifo_empty)
                             ! read a packet
                             select case (packet%data_id) ! <code for the variable var_name, GMCF-style>
                                 case (GMCF_WIND_PROFILE)
                                     call gmcfRead3DFloatArray(wind_profile,shape(wind_profile), packet)
+                                    print *, "OCEAN API: gmcfRead3DFloatArray(wind_profile)",wind_profile(1,0,0)
+                                    ! so here we must assign the wind profile to u,v,w
+                                    call gmcfInterpolateWindprofileSpaceOcean(u,v,w)
+                                    print *, "OCEAN API: gmcfInterpolateWindprofileSpaceOcean(u,v,w)",u(1,1,1)
                             end select
                             call gmcfHasPackets(ocean_id,RESPDATA,has_packets)
                         end do
@@ -156,23 +172,40 @@ contains
         real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP), intent(InOut)  :: u
         real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP), intent(InOut)  :: v
         real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP), intent(InOut)  :: w
+#if GMCF_INTERPOL_SPACE
+        real(4), dimension(4) :: grid_wp = (/ ATMOSPHERE_DI,ATMOSPHERE_DJ,ATMOSPHERE_IMS,ATMOSPHERE_JMS /)
+        real(4), dimension(4) :: grid_uvw = (/ OCEAN_DI,OCEAN_DJ,OCEAN_IMS,OCEAN_JMS /)
 
-        real(4) :: grid_wp = (/ ATMOSPHERE_DI,ATMOSPHERE_DJ,ATMOSPHERE_IMS,ATMOSPHERE_JMS /)
-        real(4) :: grid_uvw = (/ OCEAN_DI,OCEAN_DJ,OCEAN_IMS,OCEAN_JMS /)
-
-        call subroutine gmcf2DInterpolation(wind_profile(1,:,:),shape( wind_profile(1,:,:) ) ,grid_t,u(:,:,1),shape( u(:,:,1) ),grid_r)
-        call subroutine gmcf2DInterpolation(wind_profile(2,:,:),shape( wind_profile(2,:,:) ) ,grid_t,v(:,:,1),shape(v(:,:,1)),grid_r)
-        call subroutine gmcf2DInterpolation(wind_profile(3,:,:),shape( wind_profile(3,:,:) ) ,grid_t,w(:,:,1),shape(w(:,:,1)),grid_r)
+        call gmcf2DInterpolation(wind_profile(1,:,:),shape( wind_profile(1,:,:) ) ,grid_wp,u(:,:,1),shape( u(:,:,1) ),grid_uvw)
+        call gmcf2DInterpolation(wind_profile(2,:,:),shape( wind_profile(2,:,:) ) ,grid_wp,v(:,:,1),shape(v(:,:,1)),grid_uvw)
+        call gmcf2DInterpolation(wind_profile(3,:,:),shape( wind_profile(3,:,:) ) ,grid_wp,w(:,:,1),shape(w(:,:,1)),grid_uvw)
+#else
+        ! TEST 1
+        u(1,1,1) = wind_profile(1,0,0)
+        v(1,1,1) = wind_profile(2,0,0)
+        w(1,1,1) = wind_profile(3,0,0)
+!        ! TEST 2
+!        u(:,:,1) = wind_profile(1,:,:)
+!        v(:,:,1) = wind_profile(2,:,:)
+!        w(:,:,1) = wind_profile(3,:,:)
+#endif
     end subroutine gmcfInterpolateWindprofileSpaceOcean
 
     ! The temperature array to be sent to the atmosphere model is sampled from the original temperature array in the ocean model
     subroutine gmcfSampleTemperatureOcean(t_ocean)
-        real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP), intent(In)  :: t_ocean
+        real(kind=4), dimension(OCEAN_IP,OCEAN_JP), intent(In)  :: t_ocean
         ! In general, sampling requires interpolation
-    end subroutine gmcfSampleTemperatureOcean(t_ocean)
+#if GMCF_INTERPOL_SPACE
+        #error "TODO"
+#else
+        ! TEST 1
+        print *, "Assigning TEMPERATURE", t_ocean(1,1)
+        temperature(0,0)=t_ocean(1,1)
+#endif
+    end subroutine gmcfSampleTemperatureOcean
 
     subroutine gmcfFinishedOcean
         call gmcfFinished(ocean_id)
     end subroutine gmcfFinishedOcean
 
-end module gmcfAPIles
+end module gmcfAPIocean

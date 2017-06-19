@@ -1,11 +1,11 @@
 import os
 FC=os.environ.get('FC')
 
-fsources = ['./atmosphere.f95','./gmcfAPIatmosphere.f95']
+fsources = ['./atmosphere_model.f95','./gmcfAPIatmosphere.f95']
 
 LDFLAGS= [] # '-fopenmp'] # ['-Wl,-stack_size,0x40000000']
 FFLAGS  = ['-Wall','-cpp','-ffree-form','-ffree-line-length-0']
 
 envF=Environment(F95=FC,LINK=FC,LINKFLAGS=LDFLAGS,F95FLAGS=FFLAGS,F95PATH=['.','../../../lib','/opt/local/include','/usr/local/include'])
 
-envF.Library('atmosphere',fsources,LIBS=['gmcfAPI','m'],LIBPATH=['../../../lib','/opt/local/lib','/usr/local/lib'])
+envF.Library('atmosphere',fsources,LIBS=['gmcfInterpolation','gmcfAPI','m'],LIBPATH=['../../../lib','/opt/local/lib','/usr/local/lib'])

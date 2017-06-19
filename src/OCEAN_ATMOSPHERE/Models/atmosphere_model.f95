@@ -1,3 +1,4 @@
+#define GMCF_VERBOSE
 #define MODEL_API
 ! This is the producer of a producer/consumer coupled model example.
 ! Atmosphere model: Delta t = 20 min
@@ -17,7 +18,9 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 ! gmcf-coupler
     use gmcfAPI
 
-    use gmcfAPImodel2
+    use gmcfAPIatmosphere
+
+    implicit none
 
     integer(8) , intent(In) :: sys
     integer(8) , intent(In) :: tile
@@ -25,10 +28,13 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
     integer :: n_ticks
 ! end gmcf-coupler
     integer :: t,t_start,t_stop,t_step, ii, jj, kk
+!    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27
 
-
-    real(kind=4), dimension(128) :: var_name_1
-    real(kind=4), dimension(128,128,128) :: var_name_2
+    real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP) :: t_surface
+    real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP,ATMOSPHERE_KP) :: u,v,w
+    real(kind=4) :: v2
+!    real(kind=4), dimension(128) :: var_name_1
+!    real(kind=4), dimension(128,128,128) :: var_name_2
 
     ! Simulation start, stop, step for model 2
     t_start=0
@@ -37,26 +43,33 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 
     ! gmcf-coupler
     ! Init amongst other things gathers info about the time loops, maybe from a config file, need to work this out in detail:
-    call gmcfInitModel2(sys,tile, model_id)
+    call gmcfInitAtmosphere(sys,tile, model_id)
     ! end gmcf-coupler
 
-    print *, "FORTRAN MODEL2", model_id,"main routine called with pointers",sys,tile
+    print *, "FORTRAN ATMOSPHERE MODEL", model_id,"main routine called with pointers",sys,tile
         ! Compute initial
-        do ii=1,128
-            var_name_1(ii) = 0.0
-        do jj=1,128
-        do kk=1,128
-            var_name_2(ii,jj,kk) = 0.0
-        end do
-        end do
-        end do
-        var_name_1(1) = 55.7188
-        var_name_2(1,1,1) = 55.7188
+!        do ii=1,128
+!            var_name_1(ii) = 0.0
+!        do jj=1,128
+!        do kk=1,128
+!            var_name_2(ii,jj,kk) = 0.0
+!        end do
+!        end do
+!        end do
+!        var_name_1(1) = 55.7188
+!        var_name_2(1,1,1) = 55.7188
 
-        print *, "FORTRAN MODEL2", model_id,"WORK INIT DONE:",sum(var_name_1),sum(var_name_2)
+
+    ! Set initial values
+     u=2.0
+     v=0.0
+     w=0.0
+     t_surface = 0.0
+
+        print *, "FORTRAN ATMOSPHERE MODEL", model_id,"WORK INIT DONE:",sum(u),sum(t_surface)
 
     do t = t_start,t_stop,t_step
-        print *, "FORTRAN MODEL2", model_id," syncing for time step ",t,"..."
+        print *, "FORTRAN ATMOSPHERE MODEL", model_id," syncing for time step ",t,"..."
         ! gmcf-coupler
         ! Sync all models by requesting all timesteps, block until all received, and sending your timestep to all who ask, until everyone has asked?
         ! Is this possible? I think it is OK:
@@ -69,29 +82,36 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
         n_ticks = (t-t_start)/t_step
         call gmcfSyncAtmosphere(n_ticks) !, var_name_1, var_name_2)
 
-        call gmcfPreModel2(var_name_1)
+        call gmcfPreAtmosphere(u,v,w, t_surface)
         ! end gmcf-coupler
 
-        if (gmcfStatus(DEST_1) /= FIN) then
-        ! Compute
-        do ii=1,128
-            var_name_1(ii) = 1e-6*ii / (t_sync+1)
-            do jj=1,128
-                do kk=1,128
-                    var_name_2(ii,jj,kk) = sqrt(1.0*ii*jj*kk)/(t_sync+1)
-                end do
-            end do
-        end do
-        var_name_1(1) = 55.7188
-        var_name_2(1,1,1) = 55.7188
-        print *, "FORTRAN MODEL2", model_id,"WORK DONE:",sum(var_name_1),sum(var_name_2)
-        end if ! FIN
+!        v2 = v1-2*v2
+         v2 = u(1,1,1) - 2 * t_surface(1,1)
+!         print *, "FORTRAN MODEL", model_id," v2 = ",v2,' = (',u(1,1,1),'-',t_surface(1,1),'*2)'
+         print 7188, model_id, v2,u(1,1,1),t_surface(1,1)
+         7188 format("FORTRAN MODEL ",i1, " v2 = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
+         u(1,1,1)=v2
 
-        call gmcfPostModel2(var_name_2)
+!        if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
+!        ! Compute
+!        do ii=1,128
+!            var_name_1(ii) = 1e-6*ii / (t_sync+1)
+!            do jj=1,128
+!                do kk=1,128
+!                    var_name_2(ii,jj,kk) = sqrt(1.0*ii*jj*kk)/(t_sync+1)
+!                end do
+!            end do
+!        end do
+!        var_name_1(1) = 55.7188
+!        var_name_2(1,1,1) = 55.7188
+!        print *, "FORTRAN ATMOSPHERE MODEL", model_id,"WORK DONE:",sum(var_name_1),sum(var_name_2)
+!        end if ! FIN
+
+!        call gmcfPostAtmosphere(var_name_2)
 
     end do  ! time loop model 2
     call gmcfFinished(model_id)
-    print *, "FORTRAN MODEL2", model_id,"main routine finished after ",t_stop - t_start," time steps"
+    print *, "FORTRAN ATMOSPHERE MODEL", model_id,"main routine finished after ",t_stop - t_start," time steps"
 
 end subroutine program_atmosphere_gmcf
 

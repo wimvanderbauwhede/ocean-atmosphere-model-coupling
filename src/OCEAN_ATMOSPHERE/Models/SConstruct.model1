@@ -8,4 +8,4 @@ FFLAGS  = ['-Wall','-cpp','-ffree-form','-ffree-line-length-0']
 
 envF=Environment(F95=FC,LINK=FC,LINKFLAGS=LDFLAGS,F95FLAGS=FFLAGS,F95PATH=['.','../../../lib','/opt/local/include','/usr/local/include'])
 
-envF.Library('ocean',fsources,LIBS=['gmcfAPI','m'],LIBPATH=['../../../lib','/opt/local/lib','/usr/local/lib'])
+envF.Library('ocean',fsources,LIBS=['gmcfInterpolation','gmcfAPI','m'],LIBPATH=['../../../lib','/opt/local/lib','/usr/local/lib'])

@@ -1,22 +1,22 @@
-! The bilinear interpolation code is taken from "Numerical Recipes in Fortran 90"
+! The bilinear interpolation code is based on "Numerical Recipes in Fortran 90"
 ! 3.6 Interpolation in Two or More Dimensions
 ! http://www.nrbook.com/a/bookfpdf.html
+! the files in numerical_recipes are in the public domain: http://numerical.recipes/public-domain.html
 
 module gmcfInterpolation
 
 contains
 
 ! A simple helper that assummes that the grid points are equidistant
-! grid_* contains d_lon_t,d_lat_t,o_lon_t,o_lat_t : the grid spacings and offsets for latitude and longitude
+! grid_* contains d_lon_t,d_lat_t,o_lon_t,o_lat_t : the grid spacings (d_*) and offsets (o_*) for latitude and longitude
     subroutine gmcf2DInterpolation(v_t,sz_t,grid_t,v_r,sz_r,grid_r)
         use bilinear_interpolation
         integer, dimension(2), intent(In) :: sz_t,sz_r
-        real, dimension(sz(1),sz(2),sz(3)) :: array
         real, dimension(sz_t(1),sz_t(2)), intent(In) :: v_t
         real, dimension(sz_r(1),sz_r(2)), intent(InOut) :: v_r
-        integer, dimension(4), intent(In) :: grid_t, grid_r
-        integer :: d_lon_t,d_lat_t,d_lon_r,d_lat_r
-        integer :: o_lon_t,o_lat_t,o_lon_r,o_lat_r
+        real, dimension(4), intent(In) :: grid_t, grid_r
+        real :: d_lon_t,d_lat_t,d_lon_r,d_lat_r
+        real :: o_lon_t,o_lat_t,o_lon_r,o_lat_r
         real, dimension(sz_t(1)) :: a_lon_t
         real, dimension(sz_t(2)) :: a_lat_t
         real, dimension(sz_r(1)) :: a_lon_r
@@ -30,32 +30,58 @@ contains
         n_r = sz_r(1)
         m_r = sz_r(2)
 
+        call gmcfCreatePhysCoordArrays(grid_t,n_t,m_t,a_lon_t,a_lat_t)
+        call gmcfCreatePhysCoordArrays(grid_r,n_r,m_r,a_lon_r,a_lat_r)
+
+!        d_lon_t = grid_t(1)
+!        d_lat_t = grid_t(2)
+!        o_lon_t = grid_t(3)
+!        o_lat_t = grid_t(4)
+!
+!        d_lon_r = grid_r(1)
+!        d_lat_r = grid_r(2)
+!        o_lon_r = grid_r(3)
+!        o_lat_r = grid_r(4)
+!
+!        do i = 1,n_t
+!            a_lon_t = (i-1)*d_lon_t+o_lon_t
+!        end do
+!        do i = 1,m_t
+!            a_lat_t = (i-1)*d_lat_t+o_lat_t
+!        end do
+!        do i = 1,n_r
+!            a_lon_r = (i-1)*d_lon_r+o_lon_r
+!        end do
+!        do i = 1,m_r
+!            a_lat_r = (i-1)*d_lat_r+o_lat_r
+!        end do
+
+        call bilinear_interpolation_field(v_t,a_lon_t,a_lat_t, v_r, a_lon_r, a_lat_r)
+    
+    end subroutine gmcf2DInterpolation
+
+
+    subroutine gmcfCreatePhysCoordArrays(grid_t,sz_lon_t,sz_lat_t,a_lon_t,a_lat_t)
+        real, dimension(4), intent(In) :: grid_t
+        integer, intent(In) :: sz_lon_t, sz_lat_t
+        real, dimension(1:sz_lon_t), intent(InOut) :: a_lon_t
+        real, dimension(1:sz_lat_t), intent(InOut) :: a_lat_t
+        real :: d_lon_t,d_lat_t
+        real :: o_lon_t,o_lat_t
+
         d_lon_t = grid_t(1)
         d_lat_t = grid_t(2)
         o_lon_t = grid_t(3)
         o_lat_t = grid_t(4)
 
-        d_lon_r = grid_r(1)
-        d_lat_r = grid_r(2)
-        o_lon_r = grid_r(3)
-        o_lat_r = grid_r(4)
-
-        do i = 1,n_t
+        do i = 1,sz_lon_t
             a_lon_t = (i-1)*d_lon_t+o_lon_t
         end do
-        do i = 1,m_t
+        do i = 1,sz_lat_t
             a_lat_t = (i-1)*d_lat_t+o_lat_t
         end do
-        do i = 1,n_r
-            a_lon_r = (i-1)*d_lon_r+o_lon_r
-        end do
-        do i = 1,m_r
-            a_lat_r = (i-1)*d_lat_r+o_lat_r
-        end do
 
-        call bilinear_interpolation_field(v_t,a_lon_t,a_lat_t, v_r, a_lon_r, a_lat_r)
-    
-    end subroutine gmcf2DInterpolation()
+    end subroutine gmcfCreatePhysCoordArrays
 
 ! A point-based time interpolation function
     real function gmcfInterpolateTime(v, v_prev, delta_t, t) result(v_act)
