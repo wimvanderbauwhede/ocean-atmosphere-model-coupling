@@ -11,7 +11,7 @@ module gmcfAPIatmosphere
     logical :: is_sync_point
 
     ! All time-related values are multiples of GMCF_TIME_QUANTUM
-    integer, parameter :: GMCF_TIME_STEP_ATMOSPHERE = 1 ! TEST! proper sync    24 ! number of quanta
+    integer, parameter :: GMCF_TIME_STEP_ATMOSPHERE = 24 ! number of quanta
     integer, parameter :: GMCF_TIME_OFFSET_ATMOSPHERE = 0 ! number of quanta
     ! I want the atmosphere domain to be twice as large as the ocean domain but with 1/5 of the resolution
     ! So if the ocean is 100 x 100, the atmosphere will be 200/5 x 200/5

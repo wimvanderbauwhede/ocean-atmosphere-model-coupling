@@ -55,7 +55,7 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
 
     ! Simulation start, stop, step for model 1
     t_start = 0
-    t_stop = 10 ! 200
+    t_stop = 720
     t_step = 1
 
 !    t_sync_prev = -1 ! always
@@ -97,17 +97,17 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
         call gmcfPreOcean(u,v,w, t_surface)
         ! end gmcf-coupler
 
-        !v1 = v1+v2/2
-        v1b=t_surface(1,1) + u(1,1,1)/2.0
-!        print *, "FORTRAN MODEL", model_id," v1 = ",v1,' = (',t_surface(1,1),'+',u(1,1,1),'/2)'
-         print 7188, model_id, v1b,t_surface(1,1),u(1,1,1)
-         7188 format("FORTRAN MODEL ",i1, " v1b = ",f8.1,' = (',f8.1,' + ',f8.1,' / 2 )')
+        !v1 = v1+v2/200
+        v1b=t_surface(1,1) + u(1,1,1)/200.0
+        if (mod(t,72)==0) then
+             print 7188, model_id, v1b,t_surface(1,1),u(1,1,1)
+        end if
+         7188 format("FORTRAN MODEL ",i1, " v1b = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
         t_surface(1,1)=v1b
 
-        v1e=t_surface(OCEAN_IP,OCEAN_JP) + u(OCEAN_IP,OCEAN_JP,1)/2.0
-!        print *, "FORTRAN MODEL", model_id," v1 = ",v1,' = (',t_surface(1,1),'+',u(1,1,1),'/2)'
+        v1e=t_surface(OCEAN_IP,OCEAN_JP) + u(OCEAN_IP,OCEAN_JP,1)/200.0
          print 7189, model_id, v1e,t_surface(OCEAN_IP,OCEAN_JP),u(OCEAN_IP,OCEAN_JP,1)
-         7189 format("FORTRAN MODEL ",i1, " v1e = ",f8.1,' = (',f8.1,' + ',f8.1,' / 2 )')
+         7189 format("FORTRAN MODEL ",i1, " v1e = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
         t_surface(OCEAN_IP,OCEAN_JP)=v1e
 
 

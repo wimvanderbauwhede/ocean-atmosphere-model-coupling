@@ -38,7 +38,7 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 
     ! Simulation start, stop, step for model 2
     t_start=0
-    t_stop = 11 ! Problem is, it does not finish because the other model has finished
+    t_stop = 31 ! Problem is, it does not finish because the other model has finished
     t_step = 1
 
     ! gmcf-coupler

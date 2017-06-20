@@ -7,15 +7,15 @@ module gmcfConfiguration
 
     ! We termine the smallest quantum of time, i.e. the greatest common denominator of all periods
     ! Note that the scenario should specify the unit and we'll have to deal with this later
-    integer, parameter :: GMCF_TIME_QUANTUM = 1 ! 20 ! minutes
+    integer, parameter :: GMCF_TIME_QUANTUM = 20 ! minutes
 
     integer, parameter :: GMCF_TEMPERATURE=1,GMCF_WIND_PROFILE=2, GMCF_OCEAN_ID=1, GMCF_ATMOSPHERE_ID=2
 
-    integer, parameter :: GMCF_N_SYNC_CONFIGS = 2
+    integer, parameter :: GMCF_N_SYNC_CONFIGS = 1
     ! For convenience, let's name the configurations <from model>_<to model>_<data>
-    integer, parameter :: ATMOSPHERE_OCEAN_WIND_PROFILE = 2
-    integer, parameter :: OCEAN_ATMOSPHERE_TEMPERATURE = 2
-    integer, parameter :: OCEAN_SYNC_PERIOD = 1 ! TEST 1 ! 10*24*3
+    integer, parameter :: ATMOSPHERE_OCEAN_WIND_PROFILE = 1
+    integer, parameter :: OCEAN_ATMOSPHERE_TEMPERATURE = 1
+    integer, parameter :: OCEAN_SYNC_PERIOD = 1*24*3 ! quanta, i.e. 10 days
     integer, parameter :: OCEAN_SYNC_OFFSET = 0 ! TEST 1 ! 1 ! entirely ad-hoc
     integer, parameter :: ATMOSPHERE_SYNC_PERIOD = OCEAN_SYNC_PERIOD
     integer, parameter :: ATMOSPHERE_SYNC_OFFSET = 0 ! TEST 1 ! 7 ! entirely ad-hoc
@@ -48,6 +48,7 @@ module gmcfConfiguration
 !           2           2           1           7
 !           2           2           2           8
 
-    integer, dimension(2,GMCF_N_SYNC_CONFIGS,NMODELS) :: gmcfSyncConfigurations = reshape( (/  OCEAN_SYNC_PERIOD, OCEAN_SYNC_OFFSET, ATMOSPHERE_SYNC_PERIOD, ATMOSPHERE_SYNC_OFFSET, OCEAN_SYNC_PERIOD, OCEAN_SYNC_OFFSET, ATMOSPHERE_SYNC_PERIOD, ATMOSPHERE_SYNC_OFFSET /) , shape(gmcfSyncConfigurations) )
+!    integer, dimension(2,GMCF_N_SYNC_CONFIGS,NMODELS) :: gmcfSyncConfigurations = reshape( (/  OCEAN_SYNC_PERIOD, OCEAN_SYNC_OFFSET, ATMOSPHERE_SYNC_PERIOD, ATMOSPHERE_SYNC_OFFSET, OCEAN_SYNC_PERIOD, OCEAN_SYNC_OFFSET, ATMOSPHERE_SYNC_PERIOD, ATMOSPHERE_SYNC_OFFSET /) , shape(gmcfSyncConfigurations) )
+    integer, dimension(2,GMCF_N_SYNC_CONFIGS,NMODELS) :: gmcfSyncConfigurations = reshape( (/  OCEAN_SYNC_PERIOD, OCEAN_SYNC_OFFSET, ATMOSPHERE_SYNC_PERIOD, ATMOSPHERE_SYNC_OFFSET /) , shape(gmcfSyncConfigurations) )
 
 end module gmcfConfiguration
