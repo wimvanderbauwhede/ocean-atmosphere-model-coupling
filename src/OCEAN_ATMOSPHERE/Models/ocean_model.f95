@@ -48,7 +48,7 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
 
 !    integer, parameter :: OCEAN_IP=100,OCEAN_JP=100,OCEAN_KP=26
 
-    real(kind=4) :: v1
+    real(kind=4) :: v1b, v1e
 !    real(kind=4), dimension(128) :: var_name_1_prev,var_name_1
     real(kind=4), dimension(OCEAN_IP,OCEAN_JP) :: t_surface
     real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP) :: u,v,w
@@ -98,11 +98,18 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
         ! end gmcf-coupler
 
         !v1 = v1+v2/2
-        v1=t_surface(1,1) + u(1,1,1)/2.0
+        v1b=t_surface(1,1) + u(1,1,1)/2.0
 !        print *, "FORTRAN MODEL", model_id," v1 = ",v1,' = (',t_surface(1,1),'+',u(1,1,1),'/2)'
-         print 7188, model_id, v1,t_surface(1,1),u(1,1,1)
-         7188 format("FORTRAN MODEL ",i1, " v1 = ",f8.1,' = (',f8.1,' + ',f8.1,' / 2 )')
-        t_surface(1,1)=v1
+         print 7188, model_id, v1b,t_surface(1,1),u(1,1,1)
+         7188 format("FORTRAN MODEL ",i1, " v1b = ",f8.1,' = (',f8.1,' + ',f8.1,' / 2 )')
+        t_surface(1,1)=v1b
+
+        v1e=t_surface(OCEAN_IP,OCEAN_JP) + u(OCEAN_IP,OCEAN_JP,1)/2.0
+!        print *, "FORTRAN MODEL", model_id," v1 = ",v1,' = (',t_surface(1,1),'+',u(1,1,1),'/2)'
+         print 7189, model_id, v1e,t_surface(OCEAN_IP,OCEAN_JP),u(OCEAN_IP,OCEAN_JP,1)
+         7189 format("FORTRAN MODEL ",i1, " v1e = ",f8.1,' = (',f8.1,' + ',f8.1,' / 2 )')
+        t_surface(OCEAN_IP,OCEAN_JP)=v1e
+
 
 #if 0
         ! WV: Another complication is that we might need to interpolate the received values.

@@ -105,6 +105,36 @@ contains
 #endif
     end function gmcfInterpolateTime
 
+    subroutine gmcfExtract2DSubdomain(corner_indices, domain, subdomain)
+        integer, dimension(4), intent(In) :: corner_indices
+        real(kind=4), dimension(:,:) , intent(In) :: domain
+        real(kind=4), dimension(:,:) , intent(InOut) :: subdomain
+        subdomain = domain(corner_indices(1):corner_indices(2),corner_indices(3):corner_indices(4))
+    end subroutine gmcfExtract2DSubdomain
+
+    subroutine gmcfExtract3DSubdomain(corner_indices, domain, subdomain)
+        integer, dimension(6), intent(In) :: corner_indices
+        real(kind=4), dimension(:,:,:) , intent(In) :: domain
+        real(kind=4), dimension(:,:,:) , intent(InOut) :: subdomain
+        subdomain = domain(corner_indices(1):corner_indices(2),corner_indices(3):corner_indices(4),corner_indices(5):corner_indices(6))
+    end subroutine gmcfExtract3DSubdomain
+
+    subroutine gmcfInsert2DSubdomain(corner_indices, domain, subdomain)
+        integer, dimension(4), intent(In) :: corner_indices
+        real(kind=4), dimension(:,:) , intent(InOut) :: domain
+        real(kind=4), dimension(:,:) , intent(In) :: subdomain
+        domain(corner_indices(1):corner_indices(2),corner_indices(3):corner_indices(4))=subdomain
+!        print *,'gmcfInsert2DSubdomain:', sum(subdomain), sum(domain(corner_indices(1):corner_indices(2),corner_indices(3):corner_indices(4)))
+!        print *,'gmcfInsert2DSubdomain:', domain(corner_indices(1),corner_indices(3))
+    end subroutine gmcfInsert2DSubdomain
+
+
+    subroutine gmcfInsert3DSubdomain(corner_indices, domain, subdomain)
+        integer, dimension(6), intent(In) :: corner_indices
+        real(kind=4), dimension(:,:,:) , intent(InOut) :: domain
+        real(kind=4), dimension(:,:,:) , intent(In) :: subdomain
+        domain(corner_indices(1):corner_indices(2),corner_indices(3):corner_indices(4),corner_indices(5):corner_indices(6))=subdomain
+    end subroutine gmcfInsert3DSubdomain
 
 end module gmcfInterpolation
 

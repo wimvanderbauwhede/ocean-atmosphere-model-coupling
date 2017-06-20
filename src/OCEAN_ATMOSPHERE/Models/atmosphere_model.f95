@@ -32,7 +32,7 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 
     real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP) :: t_surface
     real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP,ATMOSPHERE_KP) :: u,v,w
-    real(kind=4) :: v2
+    real(kind=4) :: v2b, v2e
 !    real(kind=4), dimension(128) :: var_name_1
 !    real(kind=4), dimension(128,128,128) :: var_name_2
 
@@ -86,11 +86,17 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
         ! end gmcf-coupler
 
 !        v2 = v1-2*v2
-         v2 = u(1,1,1) - 2 * t_surface(1,1)
+         v2b = u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1) - 2 * t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3))
 !         print *, "FORTRAN MODEL", model_id," v2 = ",v2,' = (',u(1,1,1),'-',t_surface(1,1),'*2)'
-         print 7188, model_id, v2,u(1,1,1),t_surface(1,1)
-         7188 format("FORTRAN MODEL ",i1, " v2 = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
-         u(1,1,1)=v2
+         print 7188, model_id, v2b,u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1),t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3))
+         7188 format("FORTRAN MODEL ",i1, " v2b = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
+         u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1)=v2b
+
+
+         v2e = u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1) - 2 * t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4))
+         print 7189, model_id, v2e,u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1),t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4))
+         7189 format("FORTRAN MODEL ",i1, " v2e = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
+         u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1)=v2e
 
 !        if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
 !        ! Compute

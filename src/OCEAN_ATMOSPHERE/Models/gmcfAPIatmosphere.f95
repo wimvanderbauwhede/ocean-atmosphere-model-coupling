@@ -1,6 +1,7 @@
 #define GMCF_VERBOSE
 module gmcfAPIatmosphere
     use gmcfAPI
+    use gmcfInterpolation
 
     implicit none
 
@@ -16,18 +17,37 @@ module gmcfAPIatmosphere
     ! So if the ocean is 100 x 100, the atmosphere will be 200/5 x 200/5
     ! Now suppose I want the ocean to cover from 30/5 to 130/5 and from 40/5 to 140/5
 
-    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27
+!    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27
+
+    integer, parameter :: ATMOSPHERE_IP=148,ATMOSPHERE_JP=148,ATMOSPHERE_KP=27
+
+! Set up a subdomain of the atmosphere domain for transfer to the ocean model
+! call gmcfExtract2DSubdomain(corner_indices, domain, subdomain)
+
+    integer, parameter ::  ATMOSPHERE_SUB_IP=100
+    integer, parameter ::  ATMOSPHERE_SUB_JP=100
+
+    integer, parameter ::  ATMOSPHERE_SUB_IB=25
+    integer, parameter ::  ATMOSPHERE_SUB_IE=124
+    integer, parameter ::  ATMOSPHERE_SUB_JB=25
+    integer, parameter ::  ATMOSPHERE_SUB_JE=124
+
+    integer, dimension(4) :: gmcfAtmosphereSubdomainCorners = (/ ATMOSPHERE_SUB_IB, ATMOSPHERE_SUB_IE, ATMOSPHERE_SUB_JB, ATMOSPHERE_SUB_JE /)
+
 !    integer, parameter :: ATMOSPHERE_DI=5,ATMOSPHERE_DJ=5,ATMOSPHERE_DK=1  ! note that the latter is usually non-linear!
     ! I'm not happy with these names. The correct approach would be to define OCEAN_OFFSET_FROM_ATMOSPHERE_X, OCEAN_OFFSET_FROM_ATMOSPHERE_Y
 !    integer, parameter :: ATMOSPHERE_IMS=6,ATMOSPHERE_JMS=8,ATMOSPHERE_KMS=1
 !    integer, parameter :: ATMOSPHERE_IME=26,ATMOSPHERE_JME=28,ATMOSPHERE_KME=27
 
     type(gmcfPacket) :: packet
-    real(4), dimension(1:4,0:ATMOSPHERE_IP-1,0:ATMOSPHERE_JP-1) :: wind_profile
-    real(4), dimension(0:ATMOSPHERE_IP-1,0:ATMOSPHERE_JP-1) :: temperature
+
+    ! These arrays are used for transfer between the models only
+    real(4), dimension(1:4,0:ATMOSPHERE_SUB_IP-1,0:ATMOSPHERE_SUB_JP-1) :: wind_profile
+    real(4), dimension(0:ATMOSPHERE_SUB_IP-1,0:ATMOSPHERE_SUB_JP-1) :: temperature
     save
 
 contains
+! ----------------------------------------------------------------------------------------------------------------
 ! It would seem that we don't need this call anymore because all we need is
 ! call gmcfInitCoupler(sys,tile, atmosphere_id)
     subroutine gmcfInitAtmosphere(sys,tile,m_id)
@@ -45,7 +65,7 @@ contains
 !        t_sync_step = 24
         call gmcfInitCoupler(sys,tile, atmosphere_id)
     end subroutine gmcfInitAtmosphere
-
+! ----------------------------------------------------------------------------------------------------------------
 ! n_ticks = (t-t_start)/t_step
     subroutine gmcfSyncAtmosphere(n_ticks) ! (var_name_1, var_name_2)
     ! t_atmosphere is the number of quanta elapsed since the start of the simulation
@@ -67,21 +87,20 @@ contains
         ! Arguably as soon as a model has finished, there is no point in interacting with it
         ! So this should actually extend to all models.
         ! A nice solution might be a per-model bitmask, so that we check simply if it is zero
-        if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
+            if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
 #ifdef GMCF_VERBOSE
-        print *, "ATMOSPHERE API BEFORE gmcfSync()",sim_time,sync_done
+                print *, "ATMOSPHERE API BEFORE gmcfSync()",sim_time,sync_done
+#endif
+                sync_done=0
+                do while(sync_done == 0)
+                    call gmcfSync(atmosphere_id,sim_time,sync_done)
+#ifdef GMCF_VERBOSE
+                    print *, "ATMOSPHERE API AFTER gmcfSync()"
 #endif
 
-        sync_done=0
-        do while(sync_done == 0)
-            call gmcfSync(atmosphere_id,sim_time,sync_done)
+                    if (sync_done == 0) then
 #ifdef GMCF_VERBOSE
-            print *, "ATMOSPHERE API AFTER gmcfSync()"
-#endif
-
-            if (sync_done == 0) then
-#ifdef GMCF_VERBOSE
-            print *, "ATMOSPHERE API SYNC NOT DONE!"
+                        print *, "ATMOSPHERE API SYNC NOT DONE!"
 #endif
 
 !                select case (gmcfDataRequests(atmosphere_id)%data_id) ! <code for the variable var_name, GMCF-style>
@@ -89,21 +108,20 @@ contains
 !                        call gmcfSend3DFloatArray(atmosphere_id,wind_profile, shape(wind_profile), GMCF_WIND_PROFILE, gmcfDataRequests(atmosphere_id)%source,PRE,t_sync)
 !                end select
 
-            end if
+                    end if
 #ifdef GMCF_VERBOSE
-            print *, "ATMOSPHERE API", atmosphere_id," sync loop ",sim_time,"..."
+                    print *, "ATMOSPHERE API", atmosphere_id," sync loop ",sim_time,"..."
 #endif
 
-        end do
+                end do
 #ifdef GMCF_VERBOSE
-        print *, "ATMOSPHERE API", atmosphere_id," syncing DONE for time step ",sim_time, ", ", n_ticks, " ticks"
+                print *, "ATMOSPHERE API", atmosphere_id," syncing DONE for time step ",sim_time, ", ", n_ticks, " ticks"
 #endif
-
-        end if ! FIN
+            end if ! FIN
         end if ! is_sync_point
 
     end subroutine gmcfSyncAtmosphere
-
+! ----------------------------------------------------------------------------------------------------------------
     subroutine gmcfPreAtmosphere(u,v,w, t_surface)
         real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP), intent(InOut) :: t_surface
         real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP,ATMOSPHERE_KP), intent(In) :: u,v,w
@@ -113,8 +131,10 @@ contains
                 select case (current_sync_config) ! <code for the variable var_name, GMCF-style>
                     case (ATMOSPHERE_OCEAN_WIND_PROFILE)
                         ! so, of course I should assign the wind profile here
-                        print *, "ATMOSPHERE API: gmcfCreateWindprofileAtmosphere(u,v,w)",u(1,1,1),wind_profile(1,0,0)
+                        ! The wind_profile is a subdomain of u,v,w
                         call gmcfCreateWindprofileAtmosphere(u,v,w)
+                        print *, "ATMOSPHERE API: gmcfCreateWindprofileAtmosphere(u,v,w) BB",u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1),wind_profile(1,0,0)
+                        print *, "ATMOSPHERE API: gmcfCreateWindprofileAtmosphere(u,v,w) EE",u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1),wind_profile(1,ATMOSPHERE_SUB_IP-1,ATMOSPHERE_SUB_JP-1)
                         print *, "ATMOSPHERE API: gmcfSend3DFloatArray(wind_profile)"
                         call gmcfSend3DFloatArray(atmosphere_id,wind_profile, shape(wind_profile), GMCF_WIND_PROFILE, GMCF_OCEAN_ID,PRE,sim_time)
 !                    case (OCEAN_ATMOSPHERE_TEMPERATURE)
@@ -129,10 +149,11 @@ contains
                             ! read a packet
                             select case (packet%data_id) ! <code for the variable var_name, GMCF-style>
                                 case (GMCF_TEMPERATURE)
-                                    call gmcfRead1DFloatArray(temperature,shape(temperature), packet)
-                                    print *, "ATMOSPHERE API: gmcfRead1DFloatArray(temperature)"
+                                    call gmcfRead2DFloatArray(temperature,shape(temperature), packet)
+                                    print *, "ATMOSPHERE API: gmcfRead2DFloatArray(temperature)"
                                     call gmcfReceiveTemperatureAtmosphere(t_surface)
-                                    print *, "ATMOSPHERE API: gmcfReceiveTemperatureAtmosphere(t_surface)",temperature(0,0),t_surface(1,1)
+                                    print *, "ATMOSPHERE API: gmcfReceiveTemperatureAtmosphere(t_surface) BB",t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3)),temperature(0,0)
+                                    print *, "ATMOSPHERE API: gmcfReceiveTemperatureAtmosphere(t_surface) EE",t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4)),temperature(ATMOSPHERE_SUB_IP-1,ATMOSPHERE_SUB_JP-1), sum(temperature), sum(t_surface)
                             end select
                             call gmcfHasPackets(atmosphere_id,RESPDATA,has_packets)
                         end do
@@ -148,7 +169,7 @@ contains
         end if ! is_sync_point
     end subroutine gmcfPreAtmosphere
 
-
+! ----------------------------------------------------------------------------------------------------------------
     subroutine gmcfPostAtmosphere
 
         if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
@@ -158,7 +179,7 @@ contains
 #endif
         end if ! FIN
     end subroutine gmcfPostAtmosphere
-
+! ----------------------------------------------------------------------------------------------------------------
     ! This routine takes the actual u,v,w as inputs and populates wind_profile, which is a 2-D array of 4-tuples
     ! Problem is that we also need to know the start inside the mem array, I guess that is ids etc
     ! We need to do this the proper way via the physical coordinates I think
@@ -173,11 +194,14 @@ contains
     ! The dimension of u,v,w is unsatisfactory, we need to get these from the original sources of course
         real(4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP,ATMOSPHERE_KP), intent(In) :: u,v,w
         ! TEST1 we take 1 point
-        wind_profile(1,0,0)=u(1,1,1)
-        wind_profile(2,0,0)=v(1,1,1)
-        wind_profile(3,0,0)=w(1,1,1)
-        wind_profile(4,0,0)=0.0
-        ! TEST 2 we take the complete u,v,w from the atmoshere as the wind_profile
+!        wind_profile(1,0,0)=u(1,1,1)
+!        wind_profile(2,0,0)=v(1,1,1)
+!        wind_profile(3,0,0)=w(1,1,1)
+!        wind_profile(4,0,0)=0.0
+        ! TEST 2 we take the subdomain of u,v,w from the atmoshere as the wind_profile
+        call gmcfExtract2DSubdomain(gmcfAtmosphereSubdomainCorners, u(:,:,1), wind_profile(1,:,:))
+        call gmcfExtract2DSubdomain(gmcfAtmosphereSubdomainCorners, v(:,:,1), wind_profile(2,:,:))
+        call gmcfExtract2DSubdomain(gmcfAtmosphereSubdomainCorners, w(:,:,1), wind_profile(3,:,:))
         ! TEST 3 we take u,v,w from a portion of the domain of the atmoshere as the wind_profile
 
 !        integer :: i,j
@@ -190,7 +214,7 @@ contains
 !            end do
 !        end do
     end subroutine gmcfCreateWindprofileAtmosphere
-
+! ----------------------------------------------------------------------------------------------------------------
     ! The temperature array received from the ocean model is sampled from the original temperature array in the ocean model
     ! This should happen before sending
     subroutine gmcfReceiveTemperatureAtmosphere(t_surface)
@@ -200,11 +224,14 @@ contains
         #error "TODO"
 #else
         ! TEST 1
-        print *, "Reading TEMPERATURE",t_surface(1,1)
-        t_surface(1,1)=temperature(0,0)
+!        print *, "Reading TEMPERATURE",t_surface(1,1)
+!        t_surface(1,1)=temperature(0,0)
+        ! TEST 2
+        call gmcfInsert2DSubdomain(gmcfAtmosphereSubdomainCorners,t_surface, temperature)
+        print *, "gmcfInsert2DSubdomain:",t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3)),'=',temperature(0,0),';',t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4)),'=',temperature(ATMOSPHERE_SUB_IP-1,ATMOSPHERE_SUB_JP-1)
 #endif
     end subroutine gmcfReceiveTemperatureAtmosphere
-
+! ----------------------------------------------------------------------------------------------------------------
     subroutine gmcfFinishedAtmosphere
         call gmcfFinished(atmosphere_id)
     end subroutine gmcfFinishedAtmosphere
