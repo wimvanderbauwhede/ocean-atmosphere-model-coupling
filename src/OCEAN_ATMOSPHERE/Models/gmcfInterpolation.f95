@@ -4,68 +4,123 @@
 ! the files in numerical_recipes are in the public domain: http://numerical.recipes/public-domain.html
 
 module gmcfInterpolation
-
+implicit none
 contains
+
+    ! My very own bilinear interpolation for constant-spaced grids
+    ! the calculations use 0 as the starting index; but arrays with (:) start actually at 1 regardless of the original dimensioning
+    subroutine gmcf2DInterpolationConstSpacing(v_o,grid_o,v_t,grid_t)
+        real, dimension(:,:), intent(In) :: v_o
+        real, dimension(:,:), intent(InOut) :: v_t
+        real, dimension(6), intent(In) :: grid_t, grid_o
+        integer :: n_x_o,n_y_o,n_x_t,n_y_t
+        real :: d_x_o,x_0_o, d_y_o,y_0_o
+        real :: d_x_t,x_0_t, d_y_t,y_0_t
+
+        integer :: i_c,j_c, i_t, j_t
+        real :: ax_c, ay_c
+
+        n_x_o=int(grid_o(1))
+        n_y_o=int(grid_o(4))
+        n_x_t=int(grid_t(1))
+        n_y_t=int(grid_t(4))
+
+        d_x_o = grid_o(2)
+        x_0_o = grid_o(3)
+        d_y_o = grid_o(5)
+        y_0_o = grid_o(6)
+
+        d_x_t = grid_t(2)
+        x_0_t = grid_t(3)
+        d_y_t = grid_t(5)
+        y_0_t = grid_t(6)
+
+        do i_t =0,n_x_t-1
+            do j_t = 0,n_y_t-1
+                call calc_idx_ratio(i_t,d_x_t,x_0_t,d_x_o,x_0_o,i_c,ax_c)
+                call calc_idx_ratio(j_t,d_y_t,y_0_t,d_y_o,y_0_o,j_c,ay_c)
+                if (i_c>=0 .and. i_c<n_x_t .and. j_c>=0 .and. j_c<n_y_t) then
+                    v_t(i_t+1,j_t+1) = bilin_interpol_point(v_o,i_c+1,ax_c,j_c+1,ay_c)
+                end if
+            end do
+        end do
+    end subroutine gmcf2DInterpolationConstSpacing
 
 ! A simple helper that assummes that the grid points are equidistant
 ! grid_* contains d_lon_t,d_lat_t,o_lon_t,o_lat_t : the grid spacings (d_*) and offsets (o_*) for latitude and longitude
-    subroutine gmcf2DInterpolation(v_t,sz_t,grid_t,v_r,sz_r,grid_r)
-        use bilinear_interpolation
-        integer, dimension(2), intent(In) :: sz_t,sz_r
-        real, dimension(sz_t(1),sz_t(2)), intent(In) :: v_t
-        real, dimension(sz_r(1),sz_r(2)), intent(InOut) :: v_r
-        real, dimension(4), intent(In) :: grid_t, grid_r
-        real :: d_lon_t,d_lat_t,d_lon_r,d_lat_r
-        real :: o_lon_t,o_lat_t,o_lon_r,o_lat_r
-        real, dimension(sz_t(1)) :: a_lon_t
-        real, dimension(sz_t(2)) :: a_lat_t
-        real, dimension(sz_r(1)) :: a_lon_r
-        real, dimension(sz_r(2)) :: a_lat_r
-
-        integer :: n_t,m_t,n_r,m_r
-        integer :: i
-
-        n_t = sz_t(1)
-        m_t = sz_t(2)
-        n_r = sz_r(1)
-        m_r = sz_r(2)
-
-        call gmcfCreatePhysCoordArrays(grid_t,n_t,m_t,a_lon_t,a_lat_t)
-        call gmcfCreatePhysCoordArrays(grid_r,n_r,m_r,a_lon_r,a_lat_r)
-
-!        d_lon_t = grid_t(1)
-!        d_lat_t = grid_t(2)
-!        o_lon_t = grid_t(3)
-!        o_lat_t = grid_t(4)
+!   subroutine gmcf2DInterpolationConstSpacing(v_t,sz_t,grid_t,v_r,sz_r,grid_r)
+!       use bilinear_interpolation
+!       integer, dimension(2), intent(In) :: sz_t,sz_r
+!       real, dimension(sz_t(1),sz_t(2)), intent(In) :: v_t
+!       real, dimension(sz_r(1),sz_r(2)), intent(InOut) :: v_r
+!       real, dimension(4), intent(In) :: grid_t, grid_r
+!       real :: d_lon_t,d_lat_t,d_lon_r,d_lat_r
+!       real :: o_lon_t,o_lat_t,o_lon_r,o_lat_r
+!       real, dimension(sz_t(1)) :: a_lon_t
+!       real, dimension(sz_t(2)) :: a_lat_t
+!       real, dimension(sz_r(1)) :: a_lon_r
+!       real, dimension(sz_r(2)) :: a_lat_r
+!       integer :: n_t,m_t,n_r,m_r
+!       integer :: i
+!       n_t = sz_t(1)
+!       m_t = sz_t(2)
+!       n_r = sz_r(1)
+!       m_r = sz_r(2)
+!       call gmcfCreatePhysCoordArrays(grid_t,n_t,m_t,a_lon_t,a_lat_t)
+!       call gmcfCreatePhysCoordArrays(grid_r,n_r,m_r,a_lon_r,a_lat_r)
+!       call bilinear_interpolation_field(v_t,a_lon_t,a_lat_t, v_r, a_lon_r, a_lat_r)
 !
-!        d_lon_r = grid_r(1)
-!        d_lat_r = grid_r(2)
-!        o_lon_r = grid_r(3)
-!        o_lat_r = grid_r(4)
+!       call bilinear_interpolation_const_spacing(v_o,grid_o,v_t,grid_t):
 !
-!        do i = 1,n_t
-!            a_lon_t = (i-1)*d_lon_t+o_lon_t
-!        end do
-!        do i = 1,m_t
-!            a_lat_t = (i-1)*d_lat_t+o_lat_t
-!        end do
-!        do i = 1,n_r
-!            a_lon_r = (i-1)*d_lon_r+o_lon_r
-!        end do
-!        do i = 1,m_r
-!            a_lat_r = (i-1)*d_lat_r+o_lat_r
-!        end do
+!   end subroutine gmcf2DInterpolation
 
-        call bilinear_interpolation_field(v_t,a_lon_t,a_lat_t, v_r, a_lon_r, a_lat_r)
-    
-    end subroutine gmcf2DInterpolation
+! For simplicity I will assume that the indices start at 0, see above
+    real function calc_coord(idx,d_x,x_0) result(x_g)
+        integer, intent(In) :: idx
+        real(kind=4), intent(In) :: d_x,x_0
+        x_g = idx*d_x+x_0
+    end function calc_coord
 
+    subroutine calc_idx_ratio_coord(x_g,d_x,x_0,i_c,a_c)
+        real(kind=4), intent(In) :: x_g, d_x, x_0
+        integer, intent(InOut) :: i_c
+        real(kind=4), intent(InOut) :: a_c
+
+        real(kind=4) :: i_a
+        i_a = (x_g - x_0) / d_x
+        i_c = int( i_a )
+        a_c = i_a - i_c
+    end subroutine calc_idx_ratio_coord
+
+! For convenience we can combine both functions
+    subroutine calc_idx_ratio(i_t,d_x_t,x_0_t,d_x_o,x_0_o,i_c,a_c)
+        integer, intent(InOut) :: i_t
+        real(kind=4), intent(In) :: x_0_t, d_x_t,x_0_o,d_x_o
+        integer, intent(InOut) :: i_c
+        real(kind=4), intent(InOut) :: a_c
+        real(kind=4) :: x_g
+        x_g = calc_coord(i_t,d_x_t,x_0_t)
+        call calc_idx_ratio_coord(x_g,d_x_o,x_0_o,i_c,a_c)
+    end subroutine calc_idx_ratio
+
+! Note that here I assume the indices start at 1
+    real function bilin_interpol_point(v,i_c,ax_c,j_c,ay_c) result(v_t)
+        real, dimension(:,:), intent(In) :: v
+        integer, intent(In) :: i_c, j_c
+        real(kind=4), intent(In) :: ax_c, ay_c
+        v_t = &
+            v(i_c,j_c)*(1-ax_c)*(1-ay_c) + &
+            v(i_c+1,j_c)*ax_c*(1-ay_c) + &
+            v(i_c,j_c+1)*(1-ax_c)*ay_c + &
+            v(i_c+1,j_c+1)*ax_c*ay_c
+    end function bilin_interpol_point
 
     subroutine gmcfCreatePhysCoordArrays(grid_t,sz_lon_t,sz_lat_t,a_lon_t,a_lat_t)
         real, dimension(4), intent(In) :: grid_t
         integer, intent(In) :: sz_lon_t, sz_lat_t
         real, dimension(1:sz_lon_t), intent(InOut) :: a_lon_t
         real, dimension(1:sz_lat_t), intent(InOut) :: a_lat_t
+        integer :: i
         real :: d_lon_t,d_lat_t
         real :: o_lon_t,o_lat_t
 
