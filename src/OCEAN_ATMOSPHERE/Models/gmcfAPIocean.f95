@@ -58,7 +58,7 @@ contains
 !        t_sync_prev = -1
 !        t_sync = t_ocean
 !        t_sync_step = 24
-        temperature=0.0
+!        temperature=0.0
         call gmcfInitCoupler(sys,tile, ocean_id)
     end subroutine gmcfInitOcean
 ! ----------------------------------------------------------------------------------------------------------------
@@ -224,7 +224,7 @@ contains
                 print "('gmcfSampleTemperatureOcean ORIG:'10f12.2)", ( t_ocean(i,j), j=1,OCEAN_NY )
 !            end do
         end do
-        temperature=0.0
+
         do i=0,ATMOSPHERE_SUB_NX-1
 !                print *, "gmcfSampleTemperatureOcean PREV:", i,j,temperature(i,j)
                 print "('gmcfSampleTemperatureOcean PREV:'10f12.2)", ( temperature(i,j), j=0,ATMOSPHERE_SUB_NY-1 )

@@ -95,12 +95,12 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
         ! end gmcf-coupler
 
         !v1 = v1+v2/200
-        v1b=t_surface(1,1) + u(1,1,1)/200.0
+        v1b=t_surface(2,2) + u(2,2,1)/200.0
         if (mod(t,72)==0) then
-             print 7188, model_id, v1b,t_surface(1,1),u(1,1,1)
+             print 7188, model_id, v1b,t_surface(2,2),u(2,2,1)
         end if
          7188 format("FORTRAN MODEL ",i1, " v1b = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
-        t_surface(1,1)=v1b
+        t_surface(2,2)=v1b
 
         v1e=t_surface(OCEAN_NX,OCEAN_NY) + u(OCEAN_NX,OCEAN_NY,1)/200.0
          print 7189, model_id, v1e,t_surface(OCEAN_NX,OCEAN_NY),u(OCEAN_NX,OCEAN_NY,1)

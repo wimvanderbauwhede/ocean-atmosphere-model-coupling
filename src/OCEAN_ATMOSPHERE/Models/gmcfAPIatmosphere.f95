@@ -64,7 +64,7 @@ contains
 !        t_sync_prev = -1
 !        t_sync = t_atmosphere
 !        t_sync_step = 24
-        temperature=0.0
+!        temperature=0.0
         call gmcfInitCoupler(sys,tile, atmosphere_id)
     end subroutine gmcfInitAtmosphere
 ! ----------------------------------------------------------------------------------------------------------------

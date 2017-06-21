@@ -86,11 +86,13 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
         ! end gmcf-coupler
 
 !        v2 = v1-2*v2
-         v2b = u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1) - 2 * t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3))
+         v2b = &
+            u(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1,1) &
+             - 2 * t_surface(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1)
 !         print *, "FORTRAN MODEL", model_id," v2 = ",v2,' = (',u(1,1,1),'-',t_surface(1,1),'*2)'
-         print 7188, model_id, v2b,u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1),t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3))
+         print 7188, model_id, v2b,u(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1,1),t_surface(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1)
          7188 format("FORTRAN MODEL ",i1, " v2b = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
-         u(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3),1)=v2b
+         u(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1,1)=v2b
 
 
          v2e = u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1) - 2 * t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4))
