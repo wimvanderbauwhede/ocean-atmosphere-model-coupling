@@ -18,8 +18,8 @@ module gmcfAPIocean
 
     integer, parameter ::  ATMOSPHERE_SUB_NX=5 ! 100
     integer, parameter ::  ATMOSPHERE_SUB_NY=5 ! 100
-    real(4), parameter :: ATMOSPHERE_DX=15,ATMOSPHERE_DY=15,ATMOSPHERE_DK=1
-    real(4), parameter :: ATMOSPHERE_X0=20,ATMOSPHERE_Y0=20,ATMOSPHERE_KMS=1
+    real(4), parameter :: ATMOSPHERE_DX=15,ATMOSPHERE_DY=15
+    real(4), parameter :: ATMOSPHERE_X0=20,ATMOSPHERE_Y0=20
 
     integer, parameter :: OCEAN_KP=26, OCEAN_DK=1
 #ifdef GMCF_INTERPOL_SPACE
@@ -58,6 +58,7 @@ contains
 !        t_sync_prev = -1
 !        t_sync = t_ocean
 !        t_sync_step = 24
+        temperature=0.0
         call gmcfInitCoupler(sys,tile, ocean_id)
     end subroutine gmcfInitOcean
 ! ----------------------------------------------------------------------------------------------------------------
@@ -218,20 +219,24 @@ contains
         real(kind=4), dimension(6) :: grid_temp = (/ real(ATMOSPHERE_SUB_NX), ATMOSPHERE_DX, ATMOSPHERE_X0, real(ATMOSPHERE_SUB_NY),ATMOSPHERE_DY,ATMOSPHERE_Y0 /)
 
         do i=1,OCEAN_NX
-            do j=1,OCEAN_NY
-                print *, "gmcfSampleTemperatureOcean ORIG:", i,j,t_ocean(i,j)
-            end do
+!            do j=1,OCEAN_NY
+!                print *, "gmcfSampleTemperatureOcean ORIG:", i,j,t_ocean(i,j)
+                print "('gmcfSampleTemperatureOcean ORIG:'10f12.2)", ( t_ocean(i,j), j=1,OCEAN_NY )
+!            end do
         end do
+        temperature=0.0
         do i=0,ATMOSPHERE_SUB_NX-1
-            do j=0,ATMOSPHERE_SUB_NY-1
-                print *, "gmcfSampleTemperatureOcean PREV:", i,j,temperature(i,j)
-            end do
+!                print *, "gmcfSampleTemperatureOcean PREV:", i,j,temperature(i,j)
+                print "('gmcfSampleTemperatureOcean PREV:'10f12.2)", ( temperature(i,j), j=0,ATMOSPHERE_SUB_NY-1 )
         end do
+
         call gmcf2DInterpolationConstSpacing(t_ocean,grid_ocean,temperature,grid_temp)
+
         do i=0,ATMOSPHERE_SUB_NX-1
-            do j=0,ATMOSPHERE_SUB_NY-1
-                print *, "gmcfSampleTemperatureOcean SAMPLED:", i,j,temperature(i,j)
-            end do
+!            do j=0,ATMOSPHERE_SUB_NY-1
+!                print *, "gmcfSampleTemperatureOcean SAMPLED:", i,j,temperature(i,j)
+                print "('gmcfSampleTemperatureOcean SAMPLED:'10f12.2)", ( temperature(i,j), j=0,ATMOSPHERE_SUB_NY-1 )
+!            end do
         end do
 #else
         ! TEST 1

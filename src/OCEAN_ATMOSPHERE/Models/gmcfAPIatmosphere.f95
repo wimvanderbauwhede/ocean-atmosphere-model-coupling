@@ -64,6 +64,7 @@ contains
 !        t_sync_prev = -1
 !        t_sync = t_atmosphere
 !        t_sync_step = 24
+        temperature=0.0
         call gmcfInitCoupler(sys,tile, atmosphere_id)
     end subroutine gmcfInitAtmosphere
 ! ----------------------------------------------------------------------------------------------------------------
@@ -233,9 +234,10 @@ contains
         print *, "gmcfInsert2DSubdomain:",t_surface(gmcfAtmosphereSubdomainCorners(1),gmcfAtmosphereSubdomainCorners(3)),'=',temperature(0,0),';',t_surface(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4)),'=',temperature(ATMOSPHERE_SUB_NX-1,ATMOSPHERE_SUB_NY-1)
 #else
         do i=0,ATMOSPHERE_SUB_NX-1
-            do j=0,ATMOSPHERE_SUB_NY-1
-                print *, "gmcfReceiveTemperatureAtmosphere:", i,j,temperature(i,j)
-            end do
+            print "('gmcfReceiveTemperatureAtmosphere:'10f12.2)", ( temperature(i,j), j=0,ATMOSPHERE_SUB_NY-1 )
+!            do j=0,ATMOSPHERE_SUB_NY-1
+!                print *, "gmcfReceiveTemperatureAtmosphere:", i,j,temperature(i,j)
+!            end do
         end do
 #endif
     end subroutine gmcfReceiveTemperatureAtmosphere

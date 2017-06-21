@@ -41,6 +41,9 @@ contains
                 call calc_idx_ratio(j_t,d_y_t,y_0_t,d_y_o,y_0_o,j_c,ay_c)
                 if (i_c>=0 .and. i_c<n_x_t .and. j_c>=0 .and. j_c<n_y_t) then
                     v_t(i_t+1,j_t+1) = bilin_interpol_point(v_o,i_c+1,ax_c,j_c+1,ay_c)
+!                    print *, "Index in range: (",i_c,',',j_c,')'
+!                else
+!                    print *, "Index out of range: (",i_c,',',j_c,')'
                 end if
             end do
         end do
@@ -85,11 +88,14 @@ contains
         real(kind=4), intent(In) :: x_g, d_x, x_0
         integer, intent(InOut) :: i_c
         real(kind=4), intent(InOut) :: a_c
-
         real(kind=4) :: i_a
+!        print *,'<X',x_g,'-',x_0,'/',d_x,'>'
         i_a = (x_g - x_0) / d_x
-        i_c = int( i_a )
+        i_c = int( floor(i_a) )
         a_c = i_a - i_c
+!        print *,'<I',i_a,';',i_c,',',a_c,'>'
+        ! F95       <I -0.750000000     ;           0 , -0.750000000
+        ! Python    <I -0.75 ; -1 , 0.25 >
     end subroutine calc_idx_ratio_coord
 
 ! For convenience we can combine both functions
@@ -100,6 +106,7 @@ contains
         real(kind=4), intent(InOut) :: a_c
         real(kind=4) :: x_g
         x_g = calc_coord(i_t,d_x_t,x_0_t)
+!        print *,'<G',x_g,'>'
         call calc_idx_ratio_coord(x_g,d_x_o,x_0_o,i_c,a_c)
     end subroutine calc_idx_ratio
 
