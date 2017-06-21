@@ -28,17 +28,17 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
     integer :: n_ticks
 ! end gmcf-coupler
     integer :: t,t_start,t_stop,t_step, ii, jj, kk
-!    integer, parameter :: ATMOSPHERE_IP=48,ATMOSPHERE_JP=48,ATMOSPHERE_KP=27
+!    integer, parameter :: ATMOSPHERE_NX=48,ATMOSPHERE_NY=48,ATMOSPHERE_KP=27
 
-    real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP) :: t_surface
-    real(kind=4), dimension(ATMOSPHERE_IP,ATMOSPHERE_JP,ATMOSPHERE_KP) :: u,v,w
+    real(kind=4), dimension(ATMOSPHERE_NX,ATMOSPHERE_NY) :: t_surface
+    real(kind=4), dimension(ATMOSPHERE_NX,ATMOSPHERE_NY,ATMOSPHERE_KP) :: u,v,w
     real(kind=4) :: v2b, v2e
 !    real(kind=4), dimension(128) :: var_name_1
 !    real(kind=4), dimension(128,128,128) :: var_name_2
 
     ! Simulation start, stop, step for model 2
     t_start=0
-    t_stop = 31 ! Problem is, it does not finish because the other model has finished
+    t_stop = 31
     t_step = 1
 
     ! gmcf-coupler
@@ -98,6 +98,7 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
          7189 format("FORTRAN MODEL ",i1, " v2e = ",f8.1,' = (',f8.1,' - ',f8.1,' * 2 )')
          u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1)=v2e
 
+         u(:,:,1)=v2b
 !        if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
 !        ! Compute
 !        do ii=1,128

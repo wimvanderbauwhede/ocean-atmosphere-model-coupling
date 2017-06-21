@@ -46,12 +46,9 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
     integer :: t,t_start,t_stop,t_step, ii, jj, kk
     integer :: can_interpolate ! should be LOGICAL
 
-!    integer, parameter :: OCEAN_IP=100,OCEAN_JP=100,OCEAN_KP=26
-
     real(kind=4) :: v1b, v1e
-!    real(kind=4), dimension(128) :: var_name_1_prev,var_name_1
-    real(kind=4), dimension(OCEAN_IP,OCEAN_JP) :: t_surface
-    real(kind=4), dimension(OCEAN_IP,OCEAN_JP,OCEAN_KP) :: u,v,w
+    real(kind=4), dimension(OCEAN_NX,OCEAN_NY) :: t_surface
+    real(kind=4), dimension(OCEAN_NX,OCEAN_NY,OCEAN_KP) :: u,v,w
 
     ! Simulation start, stop, step for model 1
     t_start = 0
@@ -105,10 +102,11 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
          7188 format("FORTRAN MODEL ",i1, " v1b = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
         t_surface(1,1)=v1b
 
-        v1e=t_surface(OCEAN_IP,OCEAN_JP) + u(OCEAN_IP,OCEAN_JP,1)/200.0
-         print 7189, model_id, v1e,t_surface(OCEAN_IP,OCEAN_JP),u(OCEAN_IP,OCEAN_JP,1)
+        v1e=t_surface(OCEAN_NX,OCEAN_NY) + u(OCEAN_NX,OCEAN_NY,1)/200.0
+         print 7189, model_id, v1e,t_surface(OCEAN_NX,OCEAN_NY),u(OCEAN_NX,OCEAN_NY,1)
          7189 format("FORTRAN MODEL ",i1, " v1e = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
-        t_surface(OCEAN_IP,OCEAN_JP)=v1e
+        t_surface(OCEAN_NX,OCEAN_NY)=v1e
+        t_surface = v1b
 
 
 #if 0
