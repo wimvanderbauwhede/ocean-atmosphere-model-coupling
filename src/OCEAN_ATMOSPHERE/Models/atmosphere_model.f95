@@ -32,13 +32,19 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 
     real(kind=4), dimension(ATMOSPHERE_NX,ATMOSPHERE_NY) :: t_surface
     real(kind=4), dimension(ATMOSPHERE_NX,ATMOSPHERE_NY,ATMOSPHERE_KP) :: u,v,w
-    real(kind=4) :: v2b, v2e
+    real(kind=4) :: v2b, v2e, v1b, v1e
 !    real(kind=4), dimension(128) :: var_name_1
 !    real(kind=4), dimension(128,128,128) :: var_name_2
 
+    real(4), parameter :: pi=3.1415926535
+    real(4), parameter :: a2=12
+    real(4), parameter :: omega2=pi/240
+    real(4), parameter :: phi2=3*pi/4
+    real(4), parameter :: eps2=5e-1
+
     ! Simulation start, stop, step for model 2
     t_start=0
-    t_stop = 31
+    t_stop = 50 ! 31
     t_step = 1
 
     ! gmcf-coupler
@@ -84,8 +90,8 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
 
         call gmcfPreAtmosphere(u,v,w, t_surface)
         ! end gmcf-coupler
-
-!        v2 = v1-2*v2
+#if TEST == 1
+!        v2 = v2-2*v1
          v2b = &
             u(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1,1) &
              - 2 * t_surface(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1)
@@ -101,6 +107,14 @@ subroutine program_atmosphere_gmcf(sys, tile, model_id) ! This replaces 'program
          u(gmcfAtmosphereSubdomainCorners(2),gmcfAtmosphereSubdomainCorners(4),1)=v2e
 
          u(:,:,1)=v2b
+#endif
+         v1b = t_surface(gmcfAtmosphereSubdomainCorners(1)+1,gmcfAtmosphereSubdomainCorners(3)+1)
+         v2b = a2*sin(omega2*(t*GMCF_TIME_STEP_ATMOSPHERE+GMCF_TIME_OFFSET_ATMOSPHERE)+phi2)+eps2*v1b
+         u(:,:,1)=v2b
+
+         print 7188, (t*GMCF_TIME_STEP_ATMOSPHERE+GMCF_TIME_OFFSET_ATMOSPHERE),v1b,v2b
+         7188 format('ATMOSPHERE:    ',i4,'    ',f8.1,'    ',f8.1)
+
 !        if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
 !        ! Compute
 !        do ii=1,128

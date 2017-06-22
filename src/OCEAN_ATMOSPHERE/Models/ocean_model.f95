@@ -46,13 +46,18 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
     integer :: t,t_start,t_stop,t_step, ii, jj, kk
     integer :: can_interpolate ! should be LOGICAL
 
-    real(kind=4) :: v1b, v1e
+    real(kind=4) :: v1b, v1e, v2b, v2e
     real(kind=4), dimension(OCEAN_NX,OCEAN_NY) :: t_surface
     real(kind=4), dimension(OCEAN_NX,OCEAN_NY,OCEAN_KP) :: u,v,w
 
+    real(4), parameter :: pi=3.1415926535
+    real(4), parameter :: a1=16
+    real(4), parameter :: omega1=pi/360
+    real(4), parameter :: phi1=pi/4
+    real(4), parameter :: eps1=5e-1
     ! Simulation start, stop, step for model 1
     t_start = 0
-    t_stop = 720
+    t_stop = 1200 ! 720
     t_step = 1
 
 !    t_sync_prev = -1 ! always
@@ -93,7 +98,7 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
         ! So this call should take temperature as an argument as well.
         call gmcfPreOcean(u,v,w, t_surface)
         ! end gmcf-coupler
-
+#if TEST==1
         !v1 = v1+v2/200
         v1b=t_surface(2,2) + u(2,2,1)/200.0
         if (mod(t,72)==0) then
@@ -107,7 +112,13 @@ subroutine program_ocean_gmcf(sys, tile, model_id) ! This replaces 'program main
          7189 format("FORTRAN MODEL ",i1, " v1e = ",f8.1,' = (',f8.1,' + ',f8.1,' / 200 )')
         t_surface(OCEAN_NX,OCEAN_NY)=v1e
         t_surface = v1b
+#endif
+        v2b = u(2,2,1)
+        v1b= a1*sin(omega1*(t*GMCF_TIME_STEP_OCEAN+GMCF_TIME_OFFSET_OCEAN)+phi1)+eps1*v2b
+        t_surface = v1b
 
+         print 7188,  (t*GMCF_TIME_STEP_OCEAN+GMCF_TIME_OFFSET_OCEAN),v1b,v2b
+         7188 format('OCEAN:    ',i4,'    ',f8.1,'    ',f8.1)
 
 #if 0
         ! WV: Another complication is that we might need to interpolate the received values.
