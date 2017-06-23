@@ -1,5 +1,7 @@
 #define GMCF_VERBOSE
 #define GMCF_INTERPOL_SPACE
+#define GMCF_INTERPOL_TIME
+
 module gmcfAPIocean
     use gmcfAPI
     use gmcfInterpolation
@@ -8,7 +10,7 @@ module gmcfAPIocean
 
     integer :: ocean_id
     integer :: sync_done, has_packets, fifo_empty
-    integer :: t_sync, t_sync_prev, t_sync_step, t_inter, n_ticks_at_sync
+!    integer :: t_sync, t_sync_prev, t_sync_step, t_inter
     integer :: sim_time,  current_sync_config
     logical :: is_sync_point
 
@@ -39,7 +41,9 @@ module gmcfAPIocean
 #endif
 
     type(gmcfPacket) :: packet
+! For time interpolation. If no time interpolation, we only need wind_profile
     real(4), dimension(1:4,0:ATMOSPHERE_SUB_NX-1,0:ATMOSPHERE_SUB_NY-1) :: wind_profile, wind_profile_prev, wind_profile_current
+    integer :: n_ticks_current, n_ticks_at_sync
     real(4), dimension(0:ATMOSPHERE_SUB_NX-1,0:ATMOSPHERE_SUB_NY-1) :: temperature
     save
 
@@ -70,11 +74,12 @@ contains
 !        t_ocean = t_ocean + 1
 
         sim_time = n_ticks * GMCF_TIME_STEP_OCEAN + GMCF_TIME_OFFSET_OCEAN
+        n_ticks_current = n_ticks
 #ifdef GMCF_VERBOSE
         print *, "OCEAN API gmcfSyncOcean",sim_time
 #endif
         call gmcfCheckSync(ocean_id,sim_time,current_sync_config, is_sync_point)
-
+! NOTE This should be redundant in the case of models that receive as well as send
         if (is_sync_point) then
             n_ticks_at_sync = n_ticks
             if (gmcfStatus(GMCF_ATMOSPHERE_ID) /= FIN) then
@@ -106,8 +111,8 @@ contains
         if (is_sync_point) then
             ! So now we can do some work. Let's suppose ocean is the OCEAN, and it requests data from model2, ATMOSPHERE.
             ! First overwrite the *prev vars with the current vars
-#if GMCF_INTERPOL_TIME
-        wind_profile_prev = wind_profile
+#ifdef GMCF_INTERPOL_TIME
+        wind_profile_prev = wind_profile_current
 #endif
         if (gmcfStatus(GMCF_OCEAN_ID) /= FIN) then
                 select case (current_sync_config) ! <code for the variable var_name, GMCF-style>
@@ -130,12 +135,19 @@ contains
                             ! read a packet
                             select case (packet%data_id) ! <code for the variable var_name, GMCF-style>
                                 case (GMCF_WIND_PROFILE)
+#ifndef GMCF_INTERPOL_TIME
                                     call gmcfRead3DFloatArray(wind_profile,shape(wind_profile), packet)
+#else
+                                    call gmcfRead3DFloatArray(wind_profile_current,shape(wind_profile), packet)
+#endif
                                     print *, "OCEAN API: gmcfRead3DFloatArray(wind_profile)",wind_profile(1,0,0)
+#ifndef GMCF_INTERPOL_TIME
+                                    ! If no time interpolation:
                                     ! so here we must assign the wind profile to u,v,w
                                     call gmcfInterpolateWindprofileSpaceOcean(u,v,w)
                                     print *, "OCEAN API: gmcfInterpolateWindprofileSpaceOcean(u,v,w) BB",wind_profile(1,0,0),u(1,1,1)
                                     print *, "OCEAN API: gmcfInterpolateWindprofileSpaceOcean(u,v,w) EE",wind_profile(1,ATMOSPHERE_SUB_NX-1,ATMOSPHERE_SUB_NY-1),u(OCEAN_NX,OCEAN_NY,1)
+#endif
                             end select
                             call gmcfHasPackets(ocean_id,RESPDATA,has_packets)
                         end do
@@ -149,7 +161,16 @@ contains
                 end select
         end if ! FIN
         end if ! is_sync_point
+#ifdef GMCF_INTERPOL_TIME
+        call gmcfInterpolateWindprofileTimeOcean()
 
+        print *, "OCEAN API: gmcfInterpolateWindprofileTimeOcean(wind_profile)",wind_profile(1,0,0)
+        ! If no time interpolation:
+        ! so here we must assign the wind profile to u,v,w
+        call gmcfInterpolateWindprofileSpaceOcean(u,v,w)
+        print *, "OCEAN API: gmcfInterpolateWindprofileSpaceOcean(u,v,w) BB",wind_profile(1,0,0),u(1,1,1)
+        print *, "OCEAN API: gmcfInterpolateWindprofileSpaceOcean(u,v,w) EE",wind_profile(1,ATMOSPHERE_SUB_NX-1,ATMOSPHERE_SUB_NY-1),u(OCEAN_NX,OCEAN_NY,1)
+#endif
     end subroutine gmcfPreOcean
 ! ----------------------------------------------------------------------------------------------------------------
     subroutine gmcfPostOcean
@@ -165,16 +186,17 @@ contains
         end if ! FIN
     end subroutine gmcfPostOcean
 ! ----------------------------------------------------------------------------------------------------------------
-    ! The wind_profile from the atmosphere model must be interpolated in space as well as in time
+    ! The wind_profile_current from the atmosphere model must be interpolated in space as well as in time
     ! In this case it is best to do the time interpolation first, as that is on smaller arrays
     ! But that is not always the case
-    subroutine gmcfInterpolateWindprofileTimeOcean(n_ticks)
-        integer, intent(In) :: n_ticks
+    subroutine gmcfInterpolateWindprofileTimeOcean()
+!        integer, intent(In) :: n_ticks
         integer :: k,jj,ii
+        print *, 'gmcfInterpolateWindprofileTimeOcean: ',OCEAN_SYNC_PERIOD, n_ticks_at_sync,n_ticks_current,n_ticks_current - n_ticks_at_sync
         do jj=0,ATMOSPHERE_SUB_NY-1
             do ii=0,ATMOSPHERE_SUB_NX-1
                 do k = 1,3
-                    wind_profile_current(k,jj,ii) = gmcfInterpolateTime( wind_profile(k,jj,ii), wind_profile_prev(k,jj,ii), OCEAN_SYNC_PERIOD, n_ticks - n_ticks_at_sync)
+                    wind_profile(k,jj,ii) = gmcfInterpolateTime( wind_profile_current(k,jj,ii), wind_profile_prev(k,jj,ii), OCEAN_SYNC_PERIOD, n_ticks_current - n_ticks_at_sync)
                 end do
             end do
         end do

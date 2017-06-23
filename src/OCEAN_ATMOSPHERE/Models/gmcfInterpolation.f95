@@ -1,3 +1,4 @@
+#define INTERPOL_SCHEME 2
 ! The bilinear interpolation code is based on "Numerical Recipes in Fortran 90"
 ! 3.6 Interpolation in Two or More Dimensions
 ! http://www.nrbook.com/a/bookfpdf.html
@@ -154,11 +155,18 @@ contains
         ! linear
         v_act =  ((v - v_prev)/(delta_t - 1) )*t + v_prev
 #elif INTERPOL_SCHEME == 2
-        ! div-by-2
-        v_act =  v+(v_prev-v)/(2**(t+1))
+        ! div-by-2, so drops of as 2^-t
+        ! The idea is that the first point is the average between v and v_prev, the last is v
+        ! so we have ((v+v_prev)/2)*(2**-t) + v *(1 - 2**-t)
+        ! = v + ((v+v_prev)/2-v)*(2**-t)
+        ! = v + ((v_prev-v)/2)*(2**-t)
+        ! so we have v_prev*(2**-t) + v *(1 - 2**-t)
+        v_act =  v + ((v_prev-v))*(2**(-4*t/delta_t))
+
 #elif INTERPOL_SCHEME == 3
+        ! stepwise
         if (t<delta_t/2) then
-            v_act = (v_prev-v)/2
+            v_act = (v_prev+v)/2
         else
             v_act = v
         end if
