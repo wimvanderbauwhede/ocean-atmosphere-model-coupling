@@ -4,12 +4,9 @@ no strict qw( refs vars );
 use warnings;
 no warnings 'once';
 
-# uncomment `test_tput()` for an overview of the codes
-test_tput();
-
 my @colors=qw( 
         black 
-        darkred 
+        red 
         green 
         yellow 
         blue 
@@ -17,7 +14,7 @@ my @colors=qw(
         cyan 
         lightgrey 
         grey 
-        red 
+        brightred 
         brightgreen 
         brightyellow 
         brightblue 
@@ -32,9 +29,9 @@ map {$$_ = calc_code($i++)} @colors;
 while (<>) {
     chomp;
     if( /error/i ) {
-        print "$red$_$white\n";
+        print "$brightred$_$white\n";
     } elsif ( /warning/i ) {
-        print "$darkred$_$white\n";
+        print "$red$_$white\n";
     } elsif ( /\#/ ) {
         print "$green$_$white\n";
     } elsif ( /scons:/ ) {
@@ -45,6 +42,13 @@ while (<>) {
     }
 }
 
+# Only valid for codes up to 15! Works on Linux and Mac
+sub calc_code {(my $i)=@_;
+    my @codes =  (27, 91 ,51+int($i / 8)*6,48+($i % 8), 109 );
+    my $code_str = join('', map { chr($_) } @codes );
+    return $code_str;
+}
+
 sub test_tput {
     for my $i (0..255) {
         my $code = `tput setaf $i`;
@@ -53,14 +57,12 @@ sub test_tput {
         print "code $i\t";    
         map { print ' '.ord($_) } @chs;
         print "\n";
-    }
-    die;
+    }    
 }
 
-# Only valid for codes up to 15! Works on Linux and Mac
-sub calc_code {(my $i)=@_;
-    my @codes =  (27, 91 ,51+int($i / 8)*6,48+($i % 8), 109 );
-    my $code_str = join('', map { chr($_) } @codes );
-    return $code_str;
-}
+# uncomment `test_tput()` and run with
+# ./colorise.pl ''
+# for an overview of the codes
+#test_tput();
+
 
