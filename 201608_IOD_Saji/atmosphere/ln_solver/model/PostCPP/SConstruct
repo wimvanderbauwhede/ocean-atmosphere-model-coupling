@@ -1,0 +1,28 @@
+    
+import os
+FC='/opt/local/bin/gfortran-mp-6' #os.environ.get('FC')
+CC='/opt/local/bin/gcc-mp-6' #os.environ.get('CC')
+csources=['./sysdep/yylinux.c']
+
+envC=Environment(CC=CC)
+if csources:
+    envC.Library('yylinuxc',csources)
+
+fsources = [
+'./admin/ahist.f','./admin/apcon.f','./admin/aquit.f','./admin/asetc.f','./admin/asets.f','./admin/astep.f','./admin/astup.f','./admin/atime.f','./atmmain.f','./dynamics/ddiag.f','./dynamics/ddifc.f','./dynamics/dmfix.f','./dynamics/dmtrx.f','./dynamics/dsetc.f','./dynamics/dsetv.f','./dynamics/dsphe.f','./dynamics/dvect.f','./dynamics/dvtmp.f','./io/iavrg.f','./io/icord.f','./io/idiag.f','./io/ifopn.f','./io/igtio.f','./io/igzio.f','./io/ihist.f','./io/ihsub.f','./io/irdat.f','./io/irwgd.f','./io/is2po.f','./io/istrt.f','./physics/pmisc.f','./physics/pshl0.f','./physics/pvdfy.f','./proj/tintgr/aadmn-2.f','./proj/tintgr/astrt-2.f','./proj/tintgr/auser-2.f','./proj/tintgr/dadmn-2.f','./proj/tintgr/dadvn-2.f','./proj/tintgr/dbulk.f','./proj/tintgr/dgdyn-2.f','./proj/tintgr/dhydr.f','./proj/tintgr/dintg-2.f','./proj/tintgr/dsetd-2.f','./proj/tintgr/dstep-2.f','./proj/tintgr/dterm-2.f','./sysdep/ylinux.f','./util/ucaln.f','./util/ucloc.f','./util/ufftp.f','./util/umtlu.f','./util/usphe.f','./util/uspst.f','./util/usubs.f'] 
+
+# For OpenMP
+#LDFLAGS= ['-fopenmp','-Wl,-stack_size,0x40000000']
+#FFLAGS  = ['-O2', '-m64', '-Wall', '-fconvert=big-endian','-fopenmp','-pthread']
+
+LDFLAGS= []
+#FFLAGS  = ['-O2','-floop-parallelize-all','-ftree-parallelize-loops=8', '-m64', '-Wall', '-fconvert=big-endian','-fopenmp','-pthread']
+FFLAGS  = ['-Ofast', '-m64', '-Wall','-fconvert=big-endian']
+
+
+envF=Environment(FORTRAN=FC,LINK=FC,LINKFLAGS=LDFLAGS,FORTRANFLAGS=FFLAGS,FORTRANPATH=['.','..','/opt/local/include','/usr/local/include'])
+
+if csources:
+    envF.Program('atmmain',fsources,LIBS=['yylinuxc','m','c'],LIBPATH=['.','/opt/local/lib','/usr/local/lib'])
+else:
+    envF.Program('atmmain',fsources,LIBS=['m'],LIBPATH=['.','/opt/local/lib','/usr/local/lib'])

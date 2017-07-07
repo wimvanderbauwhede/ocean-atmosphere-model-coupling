@@ -1,0 +1,6 @@
+# Don't forget to run gt2gr
+# open model.ctl
+# q file
+# display u
+# q dims
+GADDIR=/Users/wim/Git/ocean-atmosphere-model-coupling/201608_IOD_Saji/atmosphere/run/data2 /Users/wim/Git/ocean-atmosphere-model-coupling/201608_IOD_Saji/atmosphere/run/grads-2.1.0/bin/grads -lc $*

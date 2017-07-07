@@ -1,0 +1,7 @@
+'open model.ctl'
+'set lon 0 180'
+'set lat -45 45'
+'set cint 0.02'
+'d p'
+'gxprint lbm_refactored_p.png x1024 y768'
+'quit'

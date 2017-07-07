@@ -1,0 +1,50 @@
+import os
+FC=os.environ.get('FC')
+
+fsources = [
+'addabc.f95',
+'addcon.f95',
+'averag.f95',
+'bahr.f95',
+#'commons.f95',
+'params_commons.f95',
+'contoc.f95',
+'diagnos.f95',
+'fluxoc.f95',
+'gridos.f95',
+'hovout.f95',
+'intfsum.f95',
+'iocean.f95',
+'maxims.f95',
+'multip.f95',
+'ninout.f95',
+'ofield.f95',
+'parames.f95',
+'patch.f95',
+'rangau.f95',
+'restax.f95',
+'select.f95',
+'setval.f95',
+'shallow.f95',
+'slvout.f95',
+'ssteqs.f95',
+'sstout.f95',
+'starts.f95',
+'stoatm.f95',
+'stress.f95',
+'yemoda.f95'
+]
+
+# For OpenMP
+#LDFLAGS= ['-fopenmp','-Wl,-stack_size,0x40000000']
+#FFLAGS  = ['-O2', '-m64', '-Wall', '-fconvert=big-endian','-fopenmp','-pthread']
+
+LDFLAGS= []
+FFLAGS_F95  = ['-Ofast', '-m64', '-Wall','-Wno-unused','-Wno-unused-dummy-argument','-ffree-form', '-ffree-line-length-none'] # THIS IS WRONG: '-fconvert=big-endian']
+
+# NOTE: F95PATH is essential for module support, FORTRANPATH does NOT work!
+envF95=Environment(F95=FC,LINK=FC,LINKFLAGS=LDFLAGS,F95FLAGS=FFLAGS_F95,F95PATH=['.','..','/opt/local/include','/usr/local/include'])
+
+envF95.Program('Shallow',fsources,LIBS=[],LIBPATH=['.','/opt/local/lib','/usr/local/lib'])
+
+

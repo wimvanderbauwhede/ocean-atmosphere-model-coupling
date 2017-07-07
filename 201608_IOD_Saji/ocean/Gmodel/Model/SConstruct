@@ -1,0 +1,51 @@
+import os
+FC=os.environ.get('FC')
+
+fsources = [
+'addabc.F',
+'addcon.F',
+'averag.F',
+'bahr.F',
+#'commons',
+'contoc.F',
+'diagnos.F',
+'fluxoc.F',
+'gridos.F',
+'hovout.F',
+'intfsum.F',
+'iocean.F',
+'maxims.F',
+'multip.F',
+'ninout.F',
+'ofield.F',
+#'parames',
+'patch.F',
+'rangau.F',
+'restax.F',
+'select.F',
+'setval.F',
+'shallow.F',
+'slvout.F',
+'ssteqs.F',
+'sstout.F',
+'starts.F',
+'stoatm.F',
+'stress.F',
+'yemoda.F'
+]
+
+# For OpenMP
+#LDFLAGS= ['-fopenmp','-Wl,-stack_size,0x40000000']
+#FFLAGS  = ['-O2', '-m64', '-Wall', '-fconvert=big-endian','-fopenmp','-pthread']
+
+LDFLAGS= []
+#FFLAGS_F77  = ['-O3', '-m64', '-Wall','-Wno-unused','-Wno-unused-dummy-argument','-ffree-form', '-ffree-line-length-none','-fconvert=big-endian']
+FFLAGS_F77  = ['-Ofast','-m64','-Wall'] #, '-m64', '-Wall','-fconvert=big-endian']
+
+# NOTE: F77PATH is essential for module support, FORTRANPATH does NOT work!
+#envF77=Environment(F77=FC,LINK=FC,LINKFLAGS=LDFLAGS,F77FLAGS=FFLAGS_F77,F77PATH=['.','..','/opt/local/include','/usr/local/include'])
+envF77=Environment(FORTRAN=FC,LINK=FC,LINKFLAGS=LDFLAGS,FORTRANFLAGS=FFLAGS_F77,FORTRANPATH=['.','..','/opt/local/include','/usr/local/include'])
+
+envF77.Program('Shallow',fsources,LIBS=[],LIBPATH=['.','/opt/local/lib','/usr/local/lib'])
+
+
